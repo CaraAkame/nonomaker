@@ -2,25 +2,25 @@ import PySimpleGUI as sg
 import sys
 import os
 import os.path
-import NonogramClueGenerator as nono
+import nono020
+import solver_from_github as solver # https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py
 '''
 split into two GUIs (instead of update window)
 TO DO:
-- Mouse Drag events
 - Refactoring functions
-- export pdf with solution
-- display if solvable
-- right click for flag as 0
-- adjust frame of canvas (it's uneven)
+- Ladebalken für solver?
+- update on github 
+- consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
+
 '''
-VERSION = 1.4    
+VERSION = 1.6    
 BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
-sg.theme('SystemDefaultForReal')                                                                                           # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
+sg.theme('SystemDefaultForReal')                                                                            # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
 
 def draw_clue_field():
-    c_x,c_y = nono.gen_clues(array)
+    c_x,c_y = nono020.gen_clues(array)
     c_l=window["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
@@ -38,7 +38,7 @@ def draw_clue_field():
         fill_color = "#bbbbbb" if x%2 == 0 else "#cccccc")
 
 def gen_clues_fun():
-    c_x,c_y = nono.gen_clues(array)
+    c_x,c_y = nono020.gen_clues(array)
     c_l=window["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
@@ -77,9 +77,50 @@ def gen_clues_fun():
                 ("Calibri",int(blocksize-5)),
                 text_location = sg.TEXT_LOCATION_BOTTOM
             )
-    # solver TO DO
-    print(c_x)
-    print(c_y)
+
+def make_screenshot():
+    window["solvable"].update(visible=False)
+    window["shift_toggle"].update(visible=False)
+    filename = sg.PopupGetText("Filename:", default_text=f"{values['name']}.pdf", font=("Calibri",10))
+    if filename is None:
+        pass
+    else:
+        foldername = sg.PopupGetFolder("Choose Folder:", font=("Calibri",10))
+        if foldername is None:
+            pass
+        try:
+            window.save_window_screenshot_to_disk(filename)
+            sg.PopupOK(f"File saved as {filename} in folder {foldername}", font=("Calibri",10))
+        except TypeError:
+            pass
+    window["shift_toggle"].update(visible=True)
+    window.finalize()
+
+def invert_fun():
+    # flip array
+    for y,row in enumerate(array):
+        for x,col in enumerate(row):
+            if array[y][x] == 1:
+                array[y][x] = 0
+            elif array[y][x] == 0:
+                array[y][x] = 1
+    # delete all old figures
+    for fig_key in figures:
+        c.delete_figure(figures[fig_key]) 
+    for y,row in enumerate(array):
+        for x,col in enumerate(row):
+            if array[y][x] == 1:
+                figures[f"{y}_{x}"] = c.draw_rectangle(top_left=(x,y),bottom_right=(x+1,y+1), fill_color="#000000")
+
+def solvable_fun():
+    c_x,c_y = nono020.gen_clues(array)
+    mysolver = solver.NonogramSolver(c_x,c_y,max_duration=max_waittime)
+    if mysolver.solved is True:
+        window["solvable"].update('Solvable')
+    if mysolver.solved is False:
+        window["solvable"].update('(Probably) Not Solvable')
+    window["solvable"].update(visible=True)
+
 # First GUI (Input Window) layout
 while True:
     layout1 = [ 
@@ -90,14 +131,16 @@ while True:
                  sg.InputText(default_text = "20", key = "width", size = (5,1), font = ("Calibri",16)),
                  sg.Text('Height', key = "hlabel", font = ("Calibri",16)), 
                  sg.InputText(default_text = "20", key = "height", size = (5,1), font = ("Calibri",16))],
-                [sg.Text('Blocksize (in pixel):', font=("Calibri",12)),
+                [sg.Text('Blocksize (in pixel):', font=("Calibri",12),pad=((4,0),(17,0)),size=(18,1)),
                  sg.Slider(range=(15,30), default_value=20, orientation='h', key="slider")],
+                [sg.Text('Max Thinking Time:', font=("Calibri",12),pad=((4,0),(17,0)),size=(18,1)),
+                 sg.Slider(range=(1,10), default_value=2, orientation='h', key="slidertime")],
                 [sg.Button('Ok', key = "ok", font = ("Calibri",10)), 
                  sg.Button('Recenter', key = "recenter", font = ("Calibri",10)),
                  sg.Button('Cancel', key = "cancel", font = ("Calibri",10))]
               ]
     # First Window (Input window)
-    window = sg.Window(f'Nono-Maker Input Version {VERSION}', layout1, finalize=True, font=("Calibri",12))  # would like to use use_custom_titlebar=True,titlebar_font=(), but can't figure out houw to leave the icons alone
+    window = sg.Window(f'Nono-Maker Input Version {VERSION}', layout1, finalize=True, font=("Calibri",12))  # would like to use use_custom_titlebar=True,titlebar_font=(), but can't figure out how to leave the icons alone
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
@@ -131,29 +174,34 @@ while True:
                 continue
             # OK - If all values are usable, break to the next loop (close this window and open the next one)
             blocksize = values["slider"]                                                                    # "save" values from slider into variable
+            max_waittime = values["slidertime"]
             break
     window.close()
     framelayout = [
         [sg.VPush()],
         [sg.Push(),
-         sg.Button('Invert', key = "invert", size=(6,1), font=("Calibri",10)), 
-         sg.Button('Recenter', key = "recenter",size=(8,1), font=("Calibri",10))],
+         sg.Button('Invert', key = "invert", size=(8,1), font=("Calibri",10),pad=((0,1),(5,1))), 
+         sg.Button('Recenter', key = "recenter",size=(8,1), font=("Calibri",10),pad=((5,0),(5,1)))],
         [sg.Push(),
-         sg.Button('Print', key = "export_pdf",size=(6,1), font=("Calibri",10)),
-         sg.Button('Export', key = "export_txt",size=(8,1), font=("Calibri",10))                           # make a "print with solution" button instead
-         ],
+        sg.Button('Print Clues Only', key = "export_pdf",size=(18,1), font=("Calibri",10),pad=((1,0),(5,1)))],
         [sg.Push(),
-         sg.Button('Clear', key = "reset_canvas",size=(6,1), font=("Calibri",10)),
-         sg.Button('Restart', key = "restart",size=(8,1), font=("Calibri",10))],
+         sg.Button('Print Solution', key = "export_solution",size=(18,1), font=("Calibri",10),pad=((1,0),(5,1)))],
         [sg.Push(),
-         sg.Button('Done', key = "gen_clues",size=(6,1), font=("Calibri",10)),
-         sg.Button('Exit', key = "close",size=(8,1), font=("Calibri",10))],                                 # or make screenshot
+         sg.Button('Clear', key = "reset_canvas",size=(8,1), font=("Calibri",10),pad=((0,1),(5,1))),
+         sg.Button('Restart', key = "restart",size=(8,1), font=("Calibri",10),pad=((5,0),(5,1)))],
+        [sg.Push(),
+         sg.Button('Done', key = "gen_clues",size=(8,1), font=("Calibri",10),pad=((0,1),(5,1))),
+         sg.Button('Exit', key = "close",size=(8,1), font=("Calibri",10),pad=((5,0),(5,1)))],                                 
 ]
     # Second (main) GUI layout
     layout2 = [
-                [sg.Text(f'Selected Dimensions: {width} x {height}', font=("Calibri",14,"bold"))],
+                [sg.Frame("",[[sg.Text(f'(Probably) Not Solvable', font=("Calibri",12),key="solvable",visible=False)]],size=(170,30),border_width=0),
+                 sg.Push(),
+                 sg.Input('Nono',font=("Calibri",12,"bold"),key=("name"),size=(20,1)),
+                 sg.Push(),
+                 sg.Frame("",[[sg.Text(f'Drawing Mode (Shift)',font=("Calibri",12), key="shift_toggle",visible=True)]],size=(170,30),border_width=0)], # keep on the right
                 [sg.Push(),
-                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0),
+                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=((1,3),(0,0))),
                  sg.Graph(canvas_size=((width+2)*blocksize, 8*blocksize), 
                         graph_bottom_left=(-0.5,8), graph_top_right=(width+0.5,-0.5), 
                         key = "canvas_top"),
@@ -164,15 +212,16 @@ while True:
                           key = "canvas_left", pad =((0,0),(0,0))),
                  sg.Graph(canvas_size=((width+2)*blocksize, (height+2)*blocksize), 
                         graph_bottom_left=(-0.5,height+0.5), graph_top_right=(width+0.5,-0.5), 
-                        key = "canvas", enable_events=True), 
-                 sg.Push()],                                                                                # drag_submits=True --> too hard rn
+                        key = "canvas", drag_submits=True, enable_events=True), 
+                 sg.Push()],                                                                                
               ]
     # Canvas Window --> I want to add the rest of the elements as well (canvas top and left)
-    window = sg.Window(f'Nono-Maker Paint Version {VERSION}', layout2, finalize=True)
+    window = sg.Window(f'Nono-Maker Paint Version {VERSION} Dimensions: {width}x{height}', layout2, return_keyboard_events = True, finalize=True)
     # background grid (every second cell)
     c = window["canvas"]
     n = 0
     c.draw_rectangle(top_left=(-1,-1),bottom_right=(width+1,height+1),fill_color="#666666",line_width=0)
+    c.draw_rectangle(top_left=(-0.7,-0.7),bottom_right=(width+0.7,height+0.7),fill_color=None,line_color="#F2F2F2",line_width=13) # field is asymmetrical for some reason, this is a workaround
     for y in range(0,height):
         for x in range(0,width):
             if n%2 == 0:                                                                                    # if rest einer division durch 2 = 0 (also gerade)
@@ -185,74 +234,60 @@ while True:
             n += 1
     array = [[0 for i in range(width)] for j in range(height)]                                              # i, j are elements
     figures = {}
-    draw_clue_field()                                                                                           # key: "y_x", value: figure number
+    draw_clue_field()                                                                                       # key: "y_x", value: figure number
+    shift = False   # "Shift_L:16"
+    
     while True:
         event, values = window.read()
+        #print(event)
         if event in (sg.WIN_CLOSED,"close"):
             sys.exit()
+        if event.startswith("Esc"):
+            sys.exit()
+        if event == "submit":
+            continue
         if event == "recenter":
             window.move_to_center()
         if event == "restart":
             break
         if event == "canvas":                                                                               # canvas was clicked on
             x,y = values["canvas"]
-            if (x<0) or (y<0):
-                continue
-            # check array for filled squares
-            try:
-                click=array[y][x]
-            except IndexError:
-                continue
-            if array[y][x] == 1:
-                # check if figure = True for "y_x"
+            window["solvable"].update(visible=False)
+            if shift:
+                # delete squares
+                if array[y][x] == 0:
+                    continue
                 if f"{y}_{x}" in figures:
                     fig_num = figures[f"{y}_{x}"]
-                    c.delete_figure(fig_num)                                                                # delete black square
-                # flip array elements
+                    c.delete_figure(fig_num)  
                 array[y][x] = 0
-            elif array[y][x] == 0:
+            else:
+                # paint squares
+                try:
+                    if array[y][x] == 1:
+                        continue
+                except IndexError:
+                    continue
+                if (y<0) or (x<0):
+                    continue
                 figures[f"{y}_{x}"] = c.draw_rectangle(top_left=(x,y),bottom_right=(x+1,y+1), fill_color="#000000")
                 array[y][x] = 1
         if event == "invert":
-            # flip array
-            for y,row in enumerate(array):
-                for x,col in enumerate(row):
-                    if array[y][x] == 1:
-                        array[y][x] = 0
-                    elif array[y][x] == 0:
-                        array[y][x] = 1
-            # delete all old figures
-            for fig_key in figures:
-                c.delete_figure(figures[fig_key]) 
-            for y,row in enumerate(array):
-                for x,col in enumerate(row):
-                    if array[y][x] == 1:
-                        figures[f"{y}_{x}"] = c.draw_rectangle(top_left=(x,y),bottom_right=(x+1,y+1), fill_color="#000000")
+            window["solvable"].update(visible=False)
+            invert_fun()
             gen_clues_fun() 
-        if event == "export_txt":
-            black = sg.PopupGetText("Char for Black:", default_text=BLACK, font=("Calibri",10))
-            white = sg.PopupGetText("Char for White:", default_text=WHITE, font=("Calibri",10))
-            if black is None or white is None:
-                continue
-            filename = sg.PopupGetText("Filename:", default_text="Nono.txt", font=("Calibri",10))
-            if filename is None:
-                continue
-            foldername = sg.PopupGetFolder("Choose Folder:", font=("Calibri",10))
-            if foldername is None:
-                continue
-            with open (os.path.join(foldername,filename),"w") as myfile:
-                for row in array:
-                    textline=""
-                    for number in row:
-                        if number == 1:
-                            textline += black
-                        elif number == 0:
-                            textline += white
-                    myfile.write(textline+"\n")
-            sg.PopupOK("File Saved", font=("Calibri",10))                   # wie bei pdf anzeigen
+            solvable_fun()
+        if event == "export_solution":
+            invert_fun()
+            gen_clues_fun()
+            invert_fun()
+            gen_clues_fun() 
+            make_screenshot()
         if event == "gen_clues":
             gen_clues_fun()
+            solvable_fun()
         if event == "reset_canvas":
+            window["solvable"].update(visible=False)
             for fig_key in figures:
                 c.delete_figure(figures[fig_key])
                 for y,row in enumerate(array):
@@ -266,13 +301,12 @@ while True:
             for fig_key in figures:
                 c.delete_figure(figures[fig_key])
             # and then export
-            filename = sg.PopupGetText("Filename:", default_text="Nono.pdf", font=("Calibri",10))
-            if filename is None:
-                continue
-            foldername = sg.PopupGetFolder("Choose Folder:", font=("Calibri",10))
-            if foldername is None:
-                continue
-            window.save_window_screenshot_to_disk(filename)
-            sg.PopupOK(f"File saved as {filename} in folder {foldername}", font=("Calibri",10))
-            window.finalize()
+            make_screenshot()
+        if event.startswith("Shift"):
+            if shift is True:
+                shift = False
+                window["shift_toggle"].update('Drawing Mode (Shift)')
+            else:
+                shift = True
+                window["shift_toggle"].update('Delete Mode (Shift)')
     window.close()
