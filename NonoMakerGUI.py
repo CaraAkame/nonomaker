@@ -2,7 +2,7 @@ import PySimpleGUI as sg
 import sys
 import os
 import os.path
-import nono020
+import NonogramClueGenerator as nono
 import solver_from_github as solver # https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py
 '''
 split into two GUIs (instead of update window)
@@ -20,7 +20,7 @@ WHITE = "0"
 sg.theme('SystemDefaultForReal')                                                                            # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
 
 def draw_clue_field():
-    c_x,c_y = nono020.gen_clues(array)
+    c_x,c_y = nono.gen_clues(array)
     c_l=window["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
@@ -38,7 +38,7 @@ def draw_clue_field():
         fill_color = "#bbbbbb" if x%2 == 0 else "#cccccc")
 
 def gen_clues_fun():
-    c_x,c_y = nono020.gen_clues(array)
+    c_x,c_y = nono.gen_clues(array)
     c_l=window["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
@@ -113,7 +113,7 @@ def invert_fun():
                 figures[f"{y}_{x}"] = c.draw_rectangle(top_left=(x,y),bottom_right=(x+1,y+1), fill_color="#000000")
 
 def solvable_fun():
-    c_x,c_y = nono020.gen_clues(array)
+    c_x,c_y = nono.gen_clues(array)
     mysolver = solver.NonogramSolver(c_x,c_y,max_duration=max_waittime)
     if mysolver.solved is True:
         window["solvable"].update('Solvable')
