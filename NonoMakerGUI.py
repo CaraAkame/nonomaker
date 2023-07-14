@@ -2,18 +2,23 @@ import PySimpleGUI as sg
 import sys
 import os
 import os.path
-import NonogramClueGenerator as nono
-import solver_from_github as solver # https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py
+import NonogramClueGeneratorV1 as nono
+import solver_from_github as solver # adjusted from: https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py
 '''
-split into two GUIs (instead of update window)
+Nonogram Maker with GUI
+- Select dimensions, size, and max waiting time (as in: how long should the computer try to solve the thing before it declares it as unsolvable)
+- Draw to your heart's content!
+- You can export either the solution (so clues + canvas), or the blank version (clues + blank canvas) to solve
+- Press shift to switch between delete and draw mode
+Notes:
+- The escape button should let you out of the entire thing if something goes wrong
+- The "solvable" display is calculated from a solver code found on github (link above)
+- This is my first foray into Python, so some notes are just FYI (but for me)
 TO DO:
-- Refactoring functions
-- Ladebalken für solver?
-- update on github 
+- the function from the NonogramClueGenerator could be directly incorporated into this file to spare the user from having to download an extra file
 - consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
-
 '''
-VERSION = 1.6    
+VERSION = 2.0    
 BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
@@ -28,7 +33,7 @@ def draw_clue_field():
         top_left=(0,y),
         bottom_right=(8,y+1),
         fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc")
-    c_l.draw_line((0,0),(0,y+1),width=5)                    # field is cut off on the left for some reason, this is a "fix"
+    c_l.draw_line((0,0),(0,y+1),width=5)                                                                    # field is cut off on the left for some reason, this is a "fix"
     c_t=window["canvas_top"]
     c_t.erase()
     for x in range(len(c_y)):
@@ -199,7 +204,7 @@ while True:
                  sg.Push(),
                  sg.Input('Nono',font=("Calibri",12,"bold"),key=("name"),size=(20,1)),
                  sg.Push(),
-                 sg.Frame("",[[sg.Text(f'Drawing Mode (Shift)',font=("Calibri",12), key="shift_toggle",visible=True)]],size=(170,30),border_width=0)], # keep on the right
+                 sg.Frame("",[[sg.Text(f'Drawing Mode (Shift)',font=("Calibri",12), key="shift_toggle",visible=True)]],size=(170,30),border_width=0)],
                 [sg.Push(),
                  sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=((1,3),(0,0))),
                  sg.Graph(canvas_size=((width+2)*blocksize, 8*blocksize), 
@@ -224,7 +229,7 @@ while True:
     c.draw_rectangle(top_left=(-0.7,-0.7),bottom_right=(width+0.7,height+0.7),fill_color=None,line_color="#F2F2F2",line_width=13) # field is asymmetrical for some reason, this is a workaround
     for y in range(0,height):
         for x in range(0,width):
-            if n%2 == 0:                                                                                    # if rest einer division durch 2 = 0 (also gerade)
+            if n%2 == 0:                                                                                    # if rest of division by 2 = 0 (even number)
                 color = "#cccccc"
             else:
                 color = "#bbbbbb"
@@ -239,7 +244,6 @@ while True:
     
     while True:
         event, values = window.read()
-        #print(event)
         if event in (sg.WIN_CLOSED,"close"):
             sys.exit()
         if event.startswith("Esc"):
