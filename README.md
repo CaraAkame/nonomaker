@@ -5,10 +5,10 @@ GUI to make a nonogram
 
 https://en.wikipedia.org/wiki/Nonogram
 
-can: pick canvas size (and draw, obviously) and save files as PDF that can be printed to solve
+can: pick canvas size, blocksize, max waiting time for solving; draw a nonogram, check if it's solvable, and export as either the solution (screenshot below) or the blank version (so the clues with a blank canvas)
 
-to do: check if drawn nonograms are actually solvable (needs a solver, is still in progress)
+to do: some QoL stuff (other themes, incorporate function from one file in the main file directly)
 
 Sample:
 
-![Screenshot](HelloWorld.png)
+![Screenshot](HelloWorld2.png)
