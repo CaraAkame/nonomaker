@@ -11,4 +11,4 @@ to do: check if drawn nonograms are actually solvable (needs a solver, is still 
 
 Sample:
 
-![Screenshot](ScreenshotNono.png)
+![Screenshot](HelloWorld.png)
