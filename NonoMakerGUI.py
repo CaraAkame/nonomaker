@@ -1,9 +1,8 @@
 import PySimpleGUI as sg
 import sys
-import os
-import os.path
-import NonogramClueGeneratorV1 as nono
-import solver_from_github as solver # adjusted from: https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py
+import time
+from itertools import combinations
+import numpy as np 
 '''
 Nonogram Maker with GUI
 - Select dimensions, size, and max waiting time (as in: how long should the computer try to solve the thing before it declares it as unsolvable)
@@ -12,20 +11,22 @@ Nonogram Maker with GUI
 - Press shift to switch between delete and draw mode
 Notes:
 - The escape button should let you out of the entire thing if something goes wrong
-- The "solvable" display is calculated from a solver code found on github (link above)
+- The "solvable" display is calculated from an adapted solver code found on github (https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py)
 - This is my first foray into Python, so some notes are just FYI (but for me)
 TO DO:
-- the function from the NonogramClueGenerator could be directly incorporated into this file to spare the user from having to download an extra file
 - consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
+- fix button glitch (icons instead of text, recommended max size or warning)
+- maybe make a color version
+- web version?
 '''
-VERSION = 2.0    
+VERSION = 3.3    
 BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
 sg.theme('SystemDefaultForReal')                                                                            # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
 
 def draw_clue_field():
-    c_x,c_y = nono.gen_clues(array)
+    c_x,c_y = gen_clues(array)
     c_l=window["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
@@ -42,8 +43,102 @@ def draw_clue_field():
         bottom_right=(x+1,8),
         fill_color = "#bbbbbb" if x%2 == 0 else "#cccccc")
 
+def gen_clues(cleanlines):
+
+    array = []
+    c_x = []                                                # clues for rows in array
+    c_y = []                                                # clues for columns in array
+    charlist = []
+
+    # replace with 0 & 1
+    for line in cleanlines:
+        rowa = []
+        for char in line:
+            # append only new chars in list (like set)
+            if char not in charlist:
+                charlist.append(char)
+                # alert for more than 2 chars
+                if len(charlist) > 2:
+                    return None    
+    
+    # only 2 chars in charlist = True
+    if charlist[0] in (" ",".","0","-","_","'","~",0):
+        # WHITE = charlist[0]
+        # BLACK = charlist[1]
+        if len(charlist) == 1:
+            WHITE = charlist[0]
+            BLACK = None
+        else:
+            WHITE,BLACK = charlist                          # same as above but better
+    else:
+        if len(charlist) == 1:
+            BLACK = charlist[0]
+            WHITE = None
+        else:
+            BLACK,WHITE = charlist
+    for line in cleanlines:
+        rowa = []
+        for char in line:
+            if char == WHITE:
+                rowa.append(0)
+            elif char == BLACK:
+                rowa.append(1)
+        array.append(rowa)
+    
+    # nono dimensions
+    y = len(cleanlines)
+    x = len(cleanlines[0])   
+    
+    # calculating rows                              
+    for row in array:
+        filled = False                          
+        result = []
+        blocks = 0                                          # length of vactor when filled = True --> reset values for new row
+        for number in row:                                  # = for each element (number) in the row
+            if number == 0:
+                filled = False
+            else:
+                filled = True
+            if filled :
+                blocks = blocks +1                          # = blocks += 1  
+            elif blocks != 0:
+                result.append(blocks)                       # append blocks to the end of result (insert would be opposite)
+                blocks = 0                                  # reset blocks variable
+        # finish with row
+        result.append(blocks)                               # append even if it ends with "filled"
+        # we don't accept trailing 0s in c_x, but we accept lone 0s
+        if len(result) > 1:
+            if result[-1] == 0:
+                result = result[:-1]
+        c_x.append(result)                                  # new horizontal clues at the end
+    
+    #calculating columns
+    for x in range(len(array[0])):                          # len = length of array
+        filled = False
+        result = []
+        blocks = 0
+        for y in range(len(array)):                         # len(array) = stop value here
+            number = array[y][x]                            # we want the row first, then the position
+            if number == 0:
+                filled = False
+            else:
+                filled = True
+            if filled :
+                blocks = blocks +1              
+            elif blocks != 0:
+                result.append(blocks)                       # append blocks to the end of result
+                blocks = 0
+        # finish with column
+        result.append(blocks)
+        # we don't accept trailing 0s in c_<, but we accept lone 0s
+        if len(result) > 1:
+            if result[-1] == 0:
+                result = result[:-1]
+        c_y.append(result)
+    return c_x,c_y
+
 def gen_clues_fun():
-    c_x,c_y = nono.gen_clues(array)
+    c_x,c_y = gen_clues(array)
     c_l=window["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
@@ -118,13 +213,119 @@ def invert_fun():
                 figures[f"{y}_{x}"] = c.draw_rectangle(top_left=(x,y),bottom_right=(x+1,y+1), fill_color="#000000")
 
 def solvable_fun():
-    c_x,c_y = nono.gen_clues(array)
-    mysolver = solver.NonogramSolver(c_x,c_y,max_duration=max_waittime)
+    c_x,c_y = gen_clues(array)
+    mysolver = NonogramSolver(c_x,c_y,max_duration=max_waittime)
     if mysolver.solved is True:
         window["solvable"].update('Solvable')
     if mysolver.solved is False:
         window["solvable"].update('(Probably) Not Solvable')
     window["solvable"].update(visible=True)
+
+class NonogramSolver:
+    def __init__(self, 
+                 ROWS_VALUES=[[2], [4], [6], [4, 3], [5, 4], [2, 3, 2], [3, 5], [5], [3], [2], [2], [6]], 
+                 COLS_VALUES=[[3], [5], [3, 2, 1], [5, 1, 1], [12], [3, 7], [4, 1, 1, 1], [3, 1, 1], [4], [2]], 
+                 savepath='',
+                 max_duration=3):
+        self.start = time.time()
+        self.max_duration = max_duration
+        self.ROWS_VALUES = ROWS_VALUES
+        self.no_of_rows = len(ROWS_VALUES)
+        self.rows_changed = [0] * self.no_of_rows
+        self.rows_done = [0] * self.no_of_rows
+
+        self.COLS_VALUES = COLS_VALUES
+        self.no_of_cols = len(COLS_VALUES)
+        self.cols_changed = [0] * self.no_of_cols
+        self.cols_done = [0] * self.no_of_cols
+
+        self.solved = False 
+        self.shape = (self.no_of_rows, self.no_of_cols)
+        self.board = [[0 for c in range(self.no_of_cols)] for r in range(self.no_of_rows)]
+        self.savepath = savepath
+        if self.savepath != '': self.n = 0
+
+        # step 1: Defining all possible solutions for every row and col
+        self.rows_possibilities = self.create_possibilities(ROWS_VALUES, self.no_of_cols)
+        self.cols_possibilities = self.create_possibilities(COLS_VALUES, self.no_of_rows)
+        
+        while not self.solved:
+            # step 2: Order indici by lowest 
+            self.lowest_rows = self.select_index_not_done(self.rows_possibilities, 1)
+            self.lowest_cols = self.select_index_not_done(self.cols_possibilities, 0)
+            self.lowest = sorted(self.lowest_rows + self.lowest_cols, key=lambda element: element[1])
+
+            # step 3: Get only zeroes or only ones of lowest possibility 
+            for ind1, _, row_ind in self.lowest:
+                if not self.check_done(row_ind, ind1):
+                    if row_ind: values = self.rows_possibilities[ind1]
+                    else: values = self.cols_possibilities[ind1]
+                    if time.time() - self.start > self.max_duration:
+                        return
+                    same_ind = self.get_only_one_option(values)
+                    for ind2, val in same_ind:
+                        if row_ind: ri, ci = ind1, ind2
+                        else: ri, ci = ind2, ind1 
+                        if self.board[ri][ci] == 0:
+                            self.board[ri][ci] = val
+                            if row_ind: self.cols_possibilities[ci] = self.remove_possibilities(self.cols_possibilities[ci], ri, val)
+                            else: self.rows_possibilities[ri] = self.remove_possibilities(self.rows_possibilities[ri], ci, val)
+
+                    self.update_done(row_ind, ind1)
+            self.check_solved()
+       
+    def create_possibilities(self, values, no_of_other):
+        possibilities = []
+        
+        for v in values:
+            groups = len(v)
+            no_empty = no_of_other-sum(v)-groups+1
+            ones = [[1]*x for x in v]
+            res = self._create_possibilities(no_empty, groups, ones)
+            possibilities.append(res)  
+        
+        return possibilities
+
+    def _create_possibilities(self, n_empty, groups, ones):
+        res_opts = []
+        for p in combinations(range(groups+n_empty), groups):
+            selected = [-1]*(groups+n_empty)
+            ones_idx = 0
+            for val in p:
+                selected[val] = ones_idx
+                ones_idx += 1
+            res_opt = [ones[val]+[-1] if val > -1 else [-1] for val in selected]
+            res_opt = [item for sublist in res_opt for item in sublist][:-1]
+            res_opts.append(res_opt)
+        return res_opts
+
+    def select_index_not_done(self, possibilities, row_ind):
+        s = [len(i) for i in possibilities]
+        if row_ind:
+            return [(i, n, row_ind) for i, n in enumerate(s) if self.rows_done[i] == 0]
+        else:
+            return [(i, n, row_ind) for i, n in enumerate(s) if self.cols_done[i] == 0]
+
+    def get_only_one_option(self, values):
+        return [(n, np.unique(i)[0]) for n, i in enumerate(np.array(values).T) if len(np.unique(i)) == 1]
+
+    def remove_possibilities(self, possibilities, i, val):
+        return [p for p in possibilities if p[i] == val]
+
+    def update_done(self, row_ind, idx):
+        if row_ind: vals = self.board[idx]
+        else: vals = [row[idx] for row in self.board]
+        if 0 not in vals:
+            if row_ind: self.rows_done[idx] = 1
+            else: self.cols_done[idx] = 1 
+
+    def check_done(self, row_ind, idx):
+        if row_ind: return self.rows_done[idx]
+        else: return self.cols_done[idx]
+
+    def check_solved(self):
+        if 0 not in self.rows_done and 0 not in self.cols_done:
+            self.solved = True
 
 # First GUI (Input Window) layout
 while True:
@@ -185,18 +386,21 @@ while True:
     framelayout = [
         [sg.VPush()],
         [sg.Push(),
-         sg.Button('Invert', key = "invert", size=(8,1), font=("Calibri",10),pad=((0,1),(5,1))), 
-         sg.Button('Recenter', key = "recenter",size=(8,1), font=("Calibri",10),pad=((5,0),(5,1)))],
+        sg.Button('I', key = "invert", size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Invert"), 
+        sg.Button('R', key = "recenter",size=(4,2), font=("Calibri",10),pad=((5,5),(0,0)),tooltip="Recenter"),
+        sg.Button('C', key = "reset_canvas",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Reset Canvas"),
+        sg.Push()],
         [sg.Push(),
-        sg.Button('Print Clues Only', key = "export_pdf",size=(18,1), font=("Calibri",10),pad=((1,0),(5,1)))],
+        sg.Button('P1', key = "export_pdf",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Export(Clues with Blank Canvas)"),
+        sg.Button('P2', key = "export_solution",size=(4,2), font=("Calibri",10),pad=((5,5),(5,5)),tooltip="Export(Clues with Solution)"),
+        sg.Button('K', key = "gen_clues",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Generate Clues"),
+        sg.Push()],
         [sg.Push(),
-         sg.Button('Print Solution', key = "export_solution",size=(18,1), font=("Calibri",10),pad=((1,0),(5,1)))],
-        [sg.Push(),
-         sg.Button('Clear', key = "reset_canvas",size=(8,1), font=("Calibri",10),pad=((0,1),(5,1))),
-         sg.Button('Restart', key = "restart",size=(8,1), font=("Calibri",10),pad=((5,0),(5,1)))],
-        [sg.Push(),
-         sg.Button('Done', key = "gen_clues",size=(8,1), font=("Calibri",10),pad=((0,1),(5,1))),
-         sg.Button('Exit', key = "close",size=(8,1), font=("Calibri",10),pad=((5,0),(5,1)))],                                 
+         sg.Button('?', key="explain",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Button Guide"),
+         sg.Button('N', key = "restart",size=(4,2), font=("Calibri",10),pad=((5,5),(0,0)),tooltip="Restart"),
+         sg.Button('X', key = "close",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Exit"),
+         sg.Push()],
+        [sg.VPush()],                                 
 ]
     # Second (main) GUI layout
     layout2 = [
@@ -306,6 +510,8 @@ while True:
                 c.delete_figure(figures[fig_key])
             # and then export
             make_screenshot()
+        if event == "explain":
+            sg.PopupScrolled("I = Invert\nR = Recenter\nC = Clear\nP1 = Export Clues with Blank Canvas\nP2 = Export Clues with Solution\nK = Generate Clues\n? = Button Guide\nN = Restart\nX = Exit",title="Buttons",font=("Calibri",10))
         if event.startswith("Shift"):
             if shift is True:
                 shift = False
