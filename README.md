@@ -7,8 +7,8 @@ https://en.wikipedia.org/wiki/Nonogram
 
 can: pick canvas size, blocksize, max waiting time for solving; draw a nonogram, check if it's solvable, and export as either the solution (screenshot below) or the blank version (so the clues with a blank canvas)
 
-to do: some QoL stuff (other themes, incorporate function from one file in the main file directly)
+to do: some QoL stuff (other themes, icons for the buttons)
 
-Sample:
+Sample (the new version has a new button layout):
 
 ![Screenshot](HelloWorld2.png)
