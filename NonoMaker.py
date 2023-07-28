@@ -15,19 +15,71 @@ Notes:
 - This is my first foray into Python, so some notes are just FYI (but for me)
 TO DO:
 - consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
-- fix button glitch (icons instead of text, recommended max size or warning)
 - maybe make a color version
-- web version?
+- web version
 '''
-VERSION = 3.3    
+VERSION = 4    
 BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
 sg.theme('SystemDefaultForReal')                                                                            # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
 
+def create_window_main():
+    framelayout = [
+                [sg.Input('Nono',key="name",font=("Calibri",12,"bold"),size=(20,1),enable_events=True)],
+                [sg.Button('Reset Options Menu',key="buttons",font=("Calibri",10))],
+                [sg.Text(f'Drawing Mode (Shift)',font=("Calibri",12), key="shift_toggle",visible=True)],
+                [sg.Text(f'(Probably) Not Solvable', font=("Calibri",12),key="solvable",visible=False)],
+                ]
+    # Second (main) GUI layout
+    layout2 = [
+                [sg.Push(),
+                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=((1,3),(0,0))),
+                 sg.Graph(canvas_size=((width+2)*blocksize, 8*blocksize), 
+                        graph_bottom_left=(-0.5,8), graph_top_right=(width+0.5,-0.5), 
+                        key = "canvas_top"),
+                 sg.Push()],
+                [sg.Push(),
+                 sg.Graph(canvas_size=(8*blocksize,(height+2)*blocksize),
+                          graph_bottom_left=(0,height+0.5), graph_top_right=(8,-0.5),
+                          key = "canvas_left", pad =((0,0),(0,0))),
+                 sg.Graph(canvas_size=((width+2)*blocksize, (height+2)*blocksize), 
+                        graph_bottom_left=(-0.5,height+0.5), graph_top_right=(width+0.5,-0.5), 
+                        key = "canvas", drag_submits=True, enable_events=True), 
+                 sg.Push()],                                                                                
+              ]
+    return sg.Window(f'Nono-Maker Paint Version {VERSION} Dimensions: {width}x{height}', layout2, return_keyboard_events = True, keep_on_top=True, finalize=True)
+
+def create_window_buttons():
+    iconsize=(4*blocksize,4*blocksize)
+    # original icon = ca 1024x1024 --> we want it to be 2xblocksize; shrink factor should be 1024/(2xblocksize)
+    stringquotient=int(1024/(4*blocksize))
+    layout3 = [
+        [sg.VPush()],
+        [sg.Push(),
+        sg.Button('', key = "invert", size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Invert",image_filename="IconInvert.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Button('', key = "recenter",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Recenter",image_filename="IconRecenter.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Push()],
+        [sg.Push(),
+        sg.Button('', key = "reset_canvas",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Reset Canvas",image_filename="IconClear.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Button('', key = "gen_clues",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Generate Clues",image_filename="IconGenClues.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Push()],
+        [sg.Push(),
+        sg.Button('', key = "export_pdf",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Blank Canvas)",image_filename="IconExportBlank.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Button('', key = "export_solution",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Solution)",image_filename="IconExportSolution.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Push()],
+        [sg.Push(),
+         sg.Button('', key = "restart",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Restart",image_filename="IconRestart.png",image_subsample=stringquotient,image_size=iconsize),
+         sg.Button('', key = "close",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Exit",image_filename="IconExit.png",image_subsample=stringquotient,image_size=iconsize),
+         sg.Push()],
+        [sg.Button('Help', key="explain", font=("Calibri",10),tooltip="Button Guide")],
+        [sg.VPush()],                                 
+                    ]
+    return sg.Window(f'Menu', layout3, return_keyboard_events = True, keep_on_top=True, finalize=True)
+
 def draw_clue_field():
     c_x,c_y = gen_clues(array)
-    c_l=window["canvas_left"]
+    c_l=window_main["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
         c_l.draw_rectangle(
@@ -35,7 +87,7 @@ def draw_clue_field():
         bottom_right=(8,y+1),
         fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc")
     c_l.draw_line((0,0),(0,y+1),width=5)                                                                    # field is cut off on the left for some reason, this is a "fix"
-    c_t=window["canvas_top"]
+    c_t=window_main["canvas_top"]
     c_t.erase()
     for x in range(len(c_y)):
         c_t.draw_rectangle(
@@ -46,8 +98,8 @@ def draw_clue_field():
 def gen_clues(cleanlines):
 
     array = []
-    c_x = []                                                # clues for rows in array
-    c_y = []                                                # clues for columns in array
+    c_x = []                                                                                                # clues for rows in array
+    c_y = []                                                                                                # clues for columns in array
     charlist = []
 
     # replace with 0 & 1
@@ -69,7 +121,7 @@ def gen_clues(cleanlines):
             WHITE = charlist[0]
             BLACK = None
         else:
-            WHITE,BLACK = charlist                          # same as above but better
+            WHITE,BLACK = charlist                                                                          # same as above but better
     else:
         if len(charlist) == 1:
             BLACK = charlist[0]
@@ -93,32 +145,32 @@ def gen_clues(cleanlines):
     for row in array:
         filled = False                          
         result = []
-        blocks = 0                                          # length of vactor when filled = True --> reset values for new row
-        for number in row:                                  # = for each element (number) in the row
+        blocks = 0                                                                                          # length of vactor when filled = True --> reset values for new row
+        for number in row:                                                                                  # = for each element (number) in the row
             if number == 0:
                 filled = False
             else:
                 filled = True
             if filled :
-                blocks = blocks +1                          # = blocks += 1  
+                blocks = blocks +1                                                                          # = blocks += 1  
             elif blocks != 0:
-                result.append(blocks)                       # append blocks to the end of result (insert would be opposite)
-                blocks = 0                                  # reset blocks variable
+                result.append(blocks)                                                                       # append blocks to the end of result (insert would be opposite)
+                blocks = 0                                                                                  # reset blocks variable
         # finish with row
-        result.append(blocks)                               # append even if it ends with "filled"
+        result.append(blocks)                                                                               # append even if it ends with "filled"
         # we don't accept trailing 0s in c_x, but we accept lone 0s
         if len(result) > 1:
             if result[-1] == 0:
                 result = result[:-1]
-        c_x.append(result)                                  # new horizontal clues at the end
+        c_x.append(result)                                                                                  # new horizontal clues at the end
     
     #calculating columns
-    for x in range(len(array[0])):                          # len = length of array
+    for x in range(len(array[0])):                                                                          # len = length of array
         filled = False
         result = []
         blocks = 0
-        for y in range(len(array)):                         # len(array) = stop value here
-            number = array[y][x]                            # we want the row first, then the position
+        for y in range(len(array)):                                                                         # len(array) = stop value here
+            number = array[y][x]                                                                            # we want the row first, then the position
             if number == 0:
                 filled = False
             else:
@@ -126,7 +178,7 @@ def gen_clues(cleanlines):
             if filled :
                 blocks = blocks +1              
             elif blocks != 0:
-                result.append(blocks)                       # append blocks to the end of result
+                result.append(blocks)                                                                       # append blocks to the end of result
                 blocks = 0
         # finish with column
         result.append(blocks)
@@ -139,7 +191,7 @@ def gen_clues(cleanlines):
 
 def gen_clues_fun():
     c_x,c_y = gen_clues(array)
-    c_l=window["canvas_left"]
+    c_l=window_main["canvas_left"]
     c_l.erase()
     for y in range(len(c_x)):
         c_l.draw_rectangle(
@@ -160,7 +212,7 @@ def gen_clues_fun():
             ("Calibri",int(blocksize-5)),
             text_location = sg.TEXT_LOCATION_RIGHT
         )
-    c_t=window["canvas_top"]
+    c_t=window_main["canvas_top"]
     c_t.erase()
     for x in range(len(c_y)):
         c_t.draw_rectangle(
@@ -179,22 +231,22 @@ def gen_clues_fun():
             )
 
 def make_screenshot():
-    window["solvable"].update(visible=False)
-    window["shift_toggle"].update(visible=False)
-    filename = sg.PopupGetText("Filename:", default_text=f"{values['name']}.pdf", font=("Calibri",10))
+    window_main["solvable"].update(visible=False)
+    window_main["shift_toggle"].update(visible=False)
+    filename = sg.PopupGetText("Filename:", default_text=f"{Game.name}.pdf", font=("Calibri",10),keep_on_top=True)
     if filename is None:
         pass
     else:
-        foldername = sg.PopupGetFolder("Choose Folder:", font=("Calibri",10))
+        foldername = sg.PopupGetFolder("Choose Folder:", font=("Calibri",10),keep_on_top=True)
         if foldername is None:
             pass
         try:
-            window.save_window_screenshot_to_disk(filename)
-            sg.PopupOK(f"File saved as {filename} in folder {foldername}", font=("Calibri",10))
+            window_main.save_window_screenshot_to_disk(filename)
+            sg.PopupOK(f"File saved as {filename} in folder {foldername}", font=("Calibri",10),keep_on_top=True)
         except TypeError:
             pass
-    window["shift_toggle"].update(visible=True)
-    window.finalize()
+    window_main["shift_toggle"].update(visible=True)
+    window_main.finalize()
 
 def invert_fun():
     # flip array
@@ -216,10 +268,13 @@ def solvable_fun():
     c_x,c_y = gen_clues(array)
     mysolver = NonogramSolver(c_x,c_y,max_duration=max_waittime)
     if mysolver.solved is True:
-        window["solvable"].update('Solvable')
+        window_main["solvable"].update('Solvable')
     if mysolver.solved is False:
-        window["solvable"].update('(Probably) Not Solvable')
-    window["solvable"].update(visible=True)
+        window_main["solvable"].update('(Probably) Not Solvable')
+    window_main["solvable"].update(visible=True)
+
+class Game:
+    name = "Nono"
 
 class NonogramSolver:
     def __init__(self, 
@@ -383,51 +438,15 @@ while True:
             max_waittime = values["slidertime"]
             break
     window.close()
-    framelayout = [
-        [sg.VPush()],
-        [sg.Push(),
-        sg.Button('I', key = "invert", size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Invert"), 
-        sg.Button('R', key = "recenter",size=(4,2), font=("Calibri",10),pad=((5,5),(0,0)),tooltip="Recenter"),
-        sg.Button('C', key = "reset_canvas",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Reset Canvas"),
-        sg.Push()],
-        [sg.Push(),
-        sg.Button('P1', key = "export_pdf",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Export(Clues with Blank Canvas)"),
-        sg.Button('P2', key = "export_solution",size=(4,2), font=("Calibri",10),pad=((5,5),(5,5)),tooltip="Export(Clues with Solution)"),
-        sg.Button('K', key = "gen_clues",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Generate Clues"),
-        sg.Push()],
-        [sg.Push(),
-         sg.Button('?', key="explain",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Button Guide"),
-         sg.Button('N', key = "restart",size=(4,2), font=("Calibri",10),pad=((5,5),(0,0)),tooltip="Restart"),
-         sg.Button('X', key = "close",size=(4,2), font=("Calibri",10),pad=((0,0),(0,0)),tooltip="Exit"),
-         sg.Push()],
-        [sg.VPush()],                                 
-]
-    # Second (main) GUI layout
-    layout2 = [
-                [sg.Frame("",[[sg.Text(f'(Probably) Not Solvable', font=("Calibri",12),key="solvable",visible=False)]],size=(170,30),border_width=0),
-                 sg.Push(),
-                 sg.Input('Nono',font=("Calibri",12,"bold"),key=("name"),size=(20,1)),
-                 sg.Push(),
-                 sg.Frame("",[[sg.Text(f'Drawing Mode (Shift)',font=("Calibri",12), key="shift_toggle",visible=True)]],size=(170,30),border_width=0)],
-                [sg.Push(),
-                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=((1,3),(0,0))),
-                 sg.Graph(canvas_size=((width+2)*blocksize, 8*blocksize), 
-                        graph_bottom_left=(-0.5,8), graph_top_right=(width+0.5,-0.5), 
-                        key = "canvas_top"),
-                 sg.Push()],
-                [sg.Push(),
-                 sg.Graph(canvas_size=(8*blocksize,(height+2)*blocksize),
-                          graph_bottom_left=(0,height+0.5), graph_top_right=(8,-0.5),
-                          key = "canvas_left", pad =((0,0),(0,0))),
-                 sg.Graph(canvas_size=((width+2)*blocksize, (height+2)*blocksize), 
-                        graph_bottom_left=(-0.5,height+0.5), graph_top_right=(width+0.5,-0.5), 
-                        key = "canvas", drag_submits=True, enable_events=True), 
-                 sg.Push()],                                                                                
-              ]
+    
     # Canvas Window --> I want to add the rest of the elements as well (canvas top and left)
-    window = sg.Window(f'Nono-Maker Paint Version {VERSION} Dimensions: {width}x{height}', layout2, return_keyboard_events = True, finalize=True)
+    window_main, window_buttons = create_window_main(), create_window_buttons()
+    window_main_width=window_main.current_size_accurate()[0]
+    window_main.finalize()
+    window_buttons.move(window_main.current_location()[0]+window_main_width+5,window_main.current_location()[1])
+    
     # background grid (every second cell)
-    c = window["canvas"]
+    c = window_main["canvas"]
     n = 0
     c.draw_rectangle(top_left=(-1,-1),bottom_right=(width+1,height+1),fill_color="#666666",line_width=0)
     c.draw_rectangle(top_left=(-0.7,-0.7),bottom_right=(width+0.7,height+0.7),fill_color=None,line_color="#F2F2F2",line_width=13) # field is asymmetrical for some reason, this is a workaround
@@ -447,20 +466,41 @@ while True:
     shift = False   # "Shift_L:16"
     
     while True:
-        event, values = window.read()
-        if event in (sg.WIN_CLOSED,"close"):
+        window, event, values = sg.read_all_windows()
+        if event == sg.WIN_CLOSED:
+            if window == window_buttons:       
+                window_buttons.close()
+                window_main.move_to_center()
+                window_buttons = None
+            elif window == window_main:     
+                if window_buttons is not None:
+                    window_buttons.close()
+                window_main.close()
+        elif event == "close":
             sys.exit()
-        if event.startswith("Esc"):
+        elif event.startswith("Esc"):
             sys.exit()
-        if event == "submit":
+        elif event == "buttons":
+            if window_buttons is None:
+                window_buttons=create_window_buttons()
+                window_buttons.move(window_main.current_location()[0]+window_main_width+5,window_main.current_location()[1])
+            else:
+                window_buttons.move(window_main.current_location()[0]+window_main_width+5,window_main.current_location()[1])
+            print(values)
+        elif event == "name":
+            Game.name=values["name"]
+        elif event == "submit":
             continue
-        if event == "recenter":
-            window.move_to_center()
-        if event == "restart":
+        elif event == "recenter":
+            window_main.move_to_center()
+            window_main.finalize()
+            # move button window to its starting position as well
+            window_buttons.move(window_main.current_location()[0]+window_main_width+5,window_main.current_location()[1])
+        elif event == "restart":
             break
-        if event == "canvas":                                                                               # canvas was clicked on
+        elif event == "canvas":                                                                             # canvas was clicked on
             x,y = values["canvas"]
-            window["solvable"].update(visible=False)
+            window_main["solvable"].update(visible=False)
             if shift:
                 # delete squares
                 if array[y][x] == 0:
@@ -480,22 +520,22 @@ while True:
                     continue
                 figures[f"{y}_{x}"] = c.draw_rectangle(top_left=(x,y),bottom_right=(x+1,y+1), fill_color="#000000")
                 array[y][x] = 1
-        if event == "invert":
-            window["solvable"].update(visible=False)
+        elif event == "invert":
+            window_main["solvable"].update(visible=False)
             invert_fun()
             gen_clues_fun() 
             solvable_fun()
-        if event == "export_solution":
+        elif event == "export_solution":
             invert_fun()
             gen_clues_fun()
             invert_fun()
             gen_clues_fun() 
             make_screenshot()
-        if event == "gen_clues":
+        elif event == "gen_clues":
             gen_clues_fun()
             solvable_fun()
-        if event == "reset_canvas":
-            window["solvable"].update(visible=False)
+        elif event == "reset_canvas":
+            window_main["solvable"].update(visible=False)
             for fig_key in figures:
                 c.delete_figure(figures[fig_key])
                 for y,row in enumerate(array):
@@ -505,18 +545,18 @@ while True:
                         elif array[y][x] == 0:
                             array[y][x] = 0
             gen_clues_fun()
-        if event == "export_pdf":
+        elif event == "export_pdf":
             for fig_key in figures:
                 c.delete_figure(figures[fig_key])
             # and then export
             make_screenshot()
-        if event == "explain":
-            sg.PopupScrolled("I = Invert\nR = Recenter\nC = Clear\nP1 = Export Clues with Blank Canvas\nP2 = Export Clues with Solution\nK = Generate Clues\n? = Button Guide\nN = Restart\nX = Exit",title="Buttons",font=("Calibri",10))
-        if event.startswith("Shift"):
+        elif event == "explain":
+            sg.PopupOK(image="Icons.png",keep_on_top=True)      
+        elif event.startswith("Shift"):
             if shift is True:
                 shift = False
-                window["shift_toggle"].update('Drawing Mode (Shift)')
+                window_main["shift_toggle"].update('Drawing Mode (Shift)')
             else:
                 shift = True
-                window["shift_toggle"].update('Delete Mode (Shift)')
+                window_main["shift_toggle"].update('Delete Mode (Shift)')
     window.close()
