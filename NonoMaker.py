@@ -51,10 +51,10 @@ def create_window_main():
     return sg.Window(f'Nono-Maker Paint Version {VERSION} Dimensions: {width}x{height}', layout2, return_keyboard_events = True, keep_on_top=True, finalize=True)
 
 def create_window_buttons():
-    iconsize=(4*blocksize,4*blocksize)
+    iconsize=(5*blocksize,5*blocksize)
     # original icon = ca 1024x1024 --> we want it to be 2xblocksize; shrink factor should be 1024/(2xblocksize)
     stringquotient=int(1024/(4*blocksize))
-    layout3 = [
+    layout_icons = [
         [sg.VPush()],
         [sg.Push(),
         sg.Button('', key = "invert", size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Invert",image_filename="IconInvert.png",image_subsample=stringquotient,image_size=iconsize),
@@ -75,7 +75,7 @@ def create_window_buttons():
         [sg.Button('Help', key="explain", font=("Calibri",10),tooltip="Button Guide")],
         [sg.VPush()],                                 
                     ]
-    return sg.Window(f'Menu', layout3, return_keyboard_events = True, keep_on_top=True, finalize=True)
+    return sg.Window(f'Menu', layout_icons, return_keyboard_events = True, keep_on_top=True, finalize=True)
 
 def draw_clue_field():
     c_x,c_y = gen_clues(array)
@@ -267,10 +267,7 @@ def invert_fun():
 def solvable_fun():
     c_x,c_y = gen_clues(array)
     mysolver = NonogramSolver(c_x,c_y,max_duration=max_waittime)
-    if mysolver.solved is True:
-        window_main["solvable"].update('Solvable')
-    if mysolver.solved is False:
-        window_main["solvable"].update('(Probably) Not Solvable')
+    window_main["solvable"].update(f'Solvable = {mysolver.solved}')
     window_main["solvable"].update(visible=True)
 
 class Game:
@@ -551,7 +548,7 @@ while True:
             # and then export
             make_screenshot()
         elif event == "explain":
-            sg.PopupOK(image="Icons.png",keep_on_top=True)      
+            sg.PopupOK(image="Icons.png",keep_on_top=True,grab_anywhere=True,font=("Calibri",10),no_titlebar=True)      
         elif event.startswith("Shift"):
             if shift is True:
                 shift = False
@@ -559,4 +556,5 @@ while True:
             else:
                 shift = True
                 window_main["shift_toggle"].update('Delete Mode (Shift)')
-    window.close()
+    window_buttons.close()
+    window_main.close()
