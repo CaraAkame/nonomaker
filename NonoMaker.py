@@ -14,6 +14,7 @@ Notes:
 - The "solvable" display is calculated from an adapted solver code found on github (https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py)
 - This is my first foray into Python, so some notes are just FYI (but for me)
 TO DO:
+- alt-text version that doesn't require png download
 - consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
 - maybe make a color version
 - web version
