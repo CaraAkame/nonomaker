@@ -1,6 +1,7 @@
 import PySimpleGUI as sg
 import sys
 import time
+from pathlib import Path
 from itertools import combinations
 import numpy as np 
 '''
@@ -14,7 +15,6 @@ Notes:
 - The "solvable" display is calculated from an adapted solver code found on github (https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py)
 - This is my first foray into Python, so some notes are just FYI (but for me)
 TO DO:
-- alt-text version that doesn't require png download
 - consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
 - maybe make a color version
 - web version
@@ -24,6 +24,16 @@ BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
 sg.theme('SystemDefaultForReal')                                                                            # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
+sg.set_options(suppress_raise_key_errors=False, suppress_error_popups=True, suppress_key_guessing=False)
+
+imagefiles = ["IconInvert","IconRecenter","IconClear","IconGenClues","IconExportBlank","IconExportSolution","IconRestart","IconExit","Icons"]
+buttons_OK = True
+for i in imagefiles:
+    if not Path(f"{i}.png").exists():
+        buttons_OK = False
+        command=sg.PopupOKCancel(f"You are missing some files!\nYou may encounter errors.\nPlease Download the File:{i}.png\nOr proceed at your own risk.")
+        if command == "Cancel":
+            sys.exit()
 
 def create_window_main():
     framelayout = [
@@ -76,7 +86,32 @@ def create_window_buttons():
         [sg.Button('Help', key="explain", font=("Calibri",10),tooltip="Button Guide")],
         [sg.VPush()],                                 
                     ]
-    return sg.Window(f'Menu', layout_icons, return_keyboard_events = True, keep_on_top=True, finalize=True)
+    layout_alt = [
+        [sg.VPush()],
+        [sg.Push(),
+        sg.Button('I', key = "invert", size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Invert"),
+        sg.Button('R', key = "recenter",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Recenter"),
+        sg.Push()],
+        [sg.Push(),
+        sg.Button('C', key = "reset_canvas",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Reset Canvas"),
+        sg.Button('G', key = "gen_clues",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Generate Clues"),
+        sg.Push()],
+        [sg.Push(),
+        sg.Button('E', key = "export_pdf",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Blank Canvas)"),
+        sg.Button('S', key = "export_solution",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Solution)"),
+        sg.Push()],
+        [sg.Push(),
+         sg.Button('N', key = "restart",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Restart"),
+         sg.Button('X', key = "close",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Exit"),
+         sg.Push()],
+        [sg.Push(),sg.Button('Help', key="explain", font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Button Guide"),sg.Push()],
+        [sg.VPush()],                                 
+                    ]
+    if buttons_OK:
+        final_window = sg.Window(f'Menu', layout_icons, return_keyboard_events = True, keep_on_top=True, finalize=True)
+    else:
+        final_window = sg.Window(f'Menu', layout_alt, return_keyboard_events = True, keep_on_top=True, finalize=True)
+    return final_window
 
 def draw_clue_field():
     c_x,c_y = gen_clues(array)
@@ -549,7 +584,10 @@ while True:
             # and then export
             make_screenshot()
         elif event == "explain":
-            sg.PopupOK(image="Icons.png",keep_on_top=True,grab_anywhere=True,font=("Calibri",10),no_titlebar=True)      
+            if buttons_OK:
+                sg.PopupOK(image="Icons.png",keep_on_top=True,grab_anywhere=True,font=("Calibri",10),no_titlebar=True)
+            else:
+                sg.PopupOK("I = Invert\nR = Recenter\nC = Clear\nE = Export (Clues with Blank Canvas)\nS = Export (Clues with Solution)\nG = Generate Clues\nN = Restart\nX = Exit",keep_on_top=True,grab_anywhere=True,font=("Calibri",10),no_titlebar=True)
         elif event.startswith("Shift"):
             if shift is True:
                 shift = False
