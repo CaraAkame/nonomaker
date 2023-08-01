@@ -13,17 +13,30 @@ Nonogram Maker with GUI
 Notes:
 - The escape button should let you out of the entire thing if something goes wrong
 - The "solvable" display is calculated from an adapted solver code found on github (https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py)
+- The "SystemDefaultForReal" theme is from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
 - This is my first foray into Python, so some notes are just FYI (but for me)
 TO DO:
-- consider making a "hackerview" version that has the black theme with green text and tiles instead of black, etc. for fun
 - maybe make a color version
 - web version
 '''
-VERSION = 4    
+VERSION = 5    
 BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
-sg.theme('SystemDefaultForReal')                                                                            # Colorscheme from 'https://www.pysimplegui.org/en/latest/#themes-automatic-coloring-of-your-windows'
+hackerviewTheme = {'BACKGROUND':'#000000',
+                   'TEXT':'#80ff00',
+                   'INPUT':'#000000',
+                   'TEXT_INPUT':'#80ff00',
+                   'SCROLL':'#80ff00',
+                   'BUTTON':('#80ff00','#000000'),
+                   'PROGRESS':('#80ff00','#000000'),
+                   'BORDER':1,
+                   'SLIDER_DEPTH':1,
+                   'PROGRESS_DEPTH':0
+}
+sg.theme_add_new("hackerview",hackerviewTheme)
+sg.theme(new_theme="hackerview")
+sg.theme_slider_color(color = '#000000')
 sg.set_options(suppress_raise_key_errors=False, suppress_error_popups=True, suppress_key_guessing=False)
 
 imagefiles = ["IconInvert","IconRecenter","IconClear","IconGenClues","IconExportBlank","IconExportSolution","IconRestart","IconExit","Icons"]
@@ -31,21 +44,25 @@ buttons_OK = True
 for i in imagefiles:
     if not Path(f"{i}.png").exists():
         buttons_OK = False
-        command=sg.PopupOKCancel(f"You are missing some files!\nYou may encounter errors.\nPlease Download the File:{i}.png\nOr proceed at your own risk.")
+        command=sg.PopupOKCancel(f"You are missing some files!\nYou may encounter errors.\nPlease Download the File:{i}.png\nOr proceed at your own risk.",font="consolas")
         if command == "Cancel":
             sys.exit()
 
 def create_window_main():
     framelayout = [
-                [sg.Input('Nono',key="name",font=("Calibri",12,"bold"),size=(20,1),enable_events=True)],
-                [sg.Button('Reset Options Menu',key="buttons",font=("Calibri",10))],
-                [sg.Text(f'Drawing Mode (Shift)',font=("Calibri",12), key="shift_toggle",visible=True)],
-                [sg.Text(f'(Probably) Not Solvable', font=("Calibri",12),key="solvable",visible=False)],
+                [sg.Input('Nono',key="name",font=("consolas",12,"bold"),size=(19,1),enable_events=True)],
+                [sg.Button('Reset Options Menu',key="buttons",font=("consolas",10))],
+                [sg.Text(f'Drawing Mode (Shift)',font=("consolas",10), key="shift_toggle",visible=True)],
+                [sg.Text(f'(Probably) Not Solvable', font=("consolas",10),key="solvable",visible=False)],
                 ]
     # Second (main) GUI layout
+    if sg.theme() == 'hackerview':
+        true_pad = ((0,0),(0,0))
+    else:
+        true_pad = ((0,4),(0,0))
     layout2 = [
                 [sg.Push(),
-                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=((1,3),(0,0))),
+                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=true_pad),
                  sg.Graph(canvas_size=((width+2)*blocksize, 8*blocksize), 
                         graph_bottom_left=(-0.5,8), graph_top_right=(width+0.5,-0.5), 
                         key = "canvas_top"),
@@ -59,7 +76,7 @@ def create_window_main():
                         key = "canvas", drag_submits=True, enable_events=True), 
                  sg.Push()],                                                                                
               ]
-    return sg.Window(f'Nono-Maker Paint Version {VERSION} Dimensions: {width}x{height}', layout2, return_keyboard_events = True, keep_on_top=True, finalize=True)
+    return sg.Window(f'Nono-Maker Paint Version {VERSION} Dimensions: {width}x{height}', layout2, return_keyboard_events = True, keep_on_top=True,use_custom_titlebar=True,titlebar_font="consolas",finalize=True)
 
 def create_window_buttons():
     iconsize=(5*blocksize,5*blocksize)
@@ -68,49 +85,49 @@ def create_window_buttons():
     layout_icons = [
         [sg.VPush()],
         [sg.Push(),
-        sg.Button('', key = "invert", size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Invert",image_filename="IconInvert.png",image_subsample=stringquotient,image_size=iconsize),
-        sg.Button('', key = "recenter",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Recenter",image_filename="IconRecenter.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Button('', key = "invert", size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Invert",image_filename="IconInvert.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
+        sg.Button('', key = "recenter",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Recenter",image_filename="IconRecenter.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
         sg.Push()],
         [sg.Push(),
-        sg.Button('', key = "reset_canvas",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Reset Canvas",image_filename="IconClear.png",image_subsample=stringquotient,image_size=iconsize),
-        sg.Button('', key = "gen_clues",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Generate Clues",image_filename="IconGenClues.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Button('', key = "reset_canvas",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Reset Canvas",image_filename="IconClear.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
+        sg.Button('', key = "gen_clues",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Generate Clues",image_filename="IconGenClues.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
         sg.Push()],
         [sg.Push(),
-        sg.Button('', key = "export_pdf",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Blank Canvas)",image_filename="IconExportBlank.png",image_subsample=stringquotient,image_size=iconsize),
-        sg.Button('', key = "export_solution",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Solution)",image_filename="IconExportSolution.png",image_subsample=stringquotient,image_size=iconsize),
+        sg.Button('', key = "export_pdf",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Export(Clues with Blank Canvas)",image_filename="IconExportBlank.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
+        sg.Button('', key = "export_solution",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Export(Clues with Solution)",image_filename="IconExportSolution.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
         sg.Push()],
         [sg.Push(),
-         sg.Button('', key = "restart",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Restart",image_filename="IconRestart.png",image_subsample=stringquotient,image_size=iconsize),
-         sg.Button('', key = "close",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Exit",image_filename="IconExit.png",image_subsample=stringquotient,image_size=iconsize),
+         sg.Button('', key = "restart",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Restart",image_filename="IconRestart.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
+         sg.Button('', key = "close",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Exit",image_filename="IconExit.png",image_subsample=stringquotient,image_size=iconsize,button_color='#f2f2f2'),
          sg.Push()],
-        [sg.Button('Help', key="explain", font=("Calibri",10),tooltip="Button Guide")],
+        [sg.Button('Help', key="explain", font=("consolas",8),tooltip="Button Guide")],
         [sg.VPush()],                                 
                     ]
     layout_alt = [
         [sg.VPush()],
         [sg.Push(),
-        sg.Button('I', key = "invert", size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Invert"),
-        sg.Button('R', key = "recenter",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Recenter"),
+        sg.Button('I', key = "invert", size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Invert"),
+        sg.Button('R', key = "recenter",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Recenter"),
         sg.Push()],
         [sg.Push(),
-        sg.Button('C', key = "reset_canvas",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Reset Canvas"),
-        sg.Button('G', key = "gen_clues",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Generate Clues"),
+        sg.Button('C', key = "reset_canvas",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Reset Canvas"),
+        sg.Button('G', key = "gen_clues",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Generate Clues"),
         sg.Push()],
         [sg.Push(),
-        sg.Button('E', key = "export_pdf",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Blank Canvas)"),
-        sg.Button('S', key = "export_solution",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Export(Clues with Solution)"),
+        sg.Button('E', key = "export_pdf",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Export(Clues with Blank Canvas)"),
+        sg.Button('S', key = "export_solution",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Export(Clues with Solution)"),
         sg.Push()],
         [sg.Push(),
-         sg.Button('N', key = "restart",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Restart"),
-         sg.Button('X', key = "close",size=(4,2), font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Exit"),
+         sg.Button('N', key = "restart",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Restart"),
+         sg.Button('X', key = "close",size=(4,2), font=("consolas",8),pad=((1,1),(1,1)),tooltip="Exit"),
          sg.Push()],
-        [sg.Push(),sg.Button('Help', key="explain", font=("Calibri",10),pad=((1,1),(1,1)),tooltip="Button Guide"),sg.Push()],
+        [sg.Push(),sg.Button('Help', key="explain", font=("consolas",8),pad=((1,1),(1,1)),tooltip="Button Guide"),sg.Push()],
         [sg.VPush()],                                 
                     ]
     if buttons_OK:
-        final_window = sg.Window(f'Menu', layout_icons, return_keyboard_events = True, keep_on_top=True, finalize=True)
+        final_window = sg.Window(f'Menu', layout_icons, return_keyboard_events = True, keep_on_top=True,use_custom_titlebar=True,titlebar_font="consolas", finalize=True)
     else:
-        final_window = sg.Window(f'Menu', layout_alt, return_keyboard_events = True, keep_on_top=True, finalize=True)
+        final_window = sg.Window(f'Menu', layout_alt, return_keyboard_events = True, keep_on_top=True,use_custom_titlebar=True,titlebar_font="consolas", finalize=True)
     return final_window
 
 def draw_clue_field():
@@ -245,7 +262,7 @@ def gen_clues_fun():
             text,
             (7.8,y+0.5),
             "#000000",
-            ("Calibri",int(blocksize-5)),
+            ("consolas",int(blocksize-5)),
             text_location = sg.TEXT_LOCATION_RIGHT
         )
     c_t=window_main["canvas_top"]
@@ -262,23 +279,23 @@ def gen_clues_fun():
                 str(number),
                 (x+0.5,8-y),
                 "#000000",
-                ("Calibri",int(blocksize-5)),
+                ("consolas",int(blocksize-5)),
                 text_location = sg.TEXT_LOCATION_BOTTOM
             )
 
 def make_screenshot():
     window_main["solvable"].update(visible=False)
     window_main["shift_toggle"].update(visible=False)
-    filename = sg.PopupGetText("Filename:", default_text=f"{Game.name}.pdf", font=("Calibri",10),keep_on_top=True)
+    filename = sg.PopupGetText("Filename:", default_text=f"{Game.name}.pdf", font=("consolas",8),keep_on_top=True)
     if filename is None:
         pass
     else:
-        foldername = sg.PopupGetFolder("Choose Folder:", font=("Calibri",10),keep_on_top=True)
+        foldername = sg.PopupGetFolder("Choose Folder:", font=("consolas",8),keep_on_top=True)
         if foldername is None:
             pass
         try:
             window_main.save_window_screenshot_to_disk(filename)
-            sg.PopupOK(f"File saved as {filename} in folder {foldername}", font=("Calibri",10),keep_on_top=True)
+            sg.PopupOK(f"File saved as {filename} in folder {foldername}", font=("consolas",8),keep_on_top=True)
         except TypeError:
             pass
     window_main["shift_toggle"].update(visible=True)
@@ -417,59 +434,67 @@ class NonogramSolver:
 
 # First GUI (Input Window) layout
 while True:
+    sg.theme('hackerview')
+    sg.theme_slider_color(color = '#000000')
     layout1 = [ 
-                [sg.Text('Welcome to NonoPaint!', font = ("Calibri",22,"bold"))],
-                [sg.Text('Please enter the parameters:', key = "subhead", font=("Calibri",16,"italic")),
-                 sg.Text('Dimensions:', key = "dims", font = ("Calibri", 16), visible = False),
-                 sg.Text('Width', key = "wlabel", font = ("Calibri",16)), 
-                 sg.InputText(default_text = "20", key = "width", size = (5,1), font = ("Calibri",16)),
-                 sg.Text('Height', key = "hlabel", font = ("Calibri",16)), 
-                 sg.InputText(default_text = "20", key = "height", size = (5,1), font = ("Calibri",16))],
-                [sg.Text('Blocksize (in pixel):', font=("Calibri",12),pad=((4,0),(17,0)),size=(18,1)),
-                 sg.Slider(range=(15,30), default_value=20, orientation='h', key="slider")],
-                [sg.Text('Max Thinking Time:', font=("Calibri",12),pad=((4,0),(17,0)),size=(18,1)),
-                 sg.Slider(range=(1,10), default_value=2, orientation='h', key="slidertime")],
-                [sg.Button('Ok', key = "ok", font = ("Calibri",10)), 
-                 sg.Button('Recenter', key = "recenter", font = ("Calibri",10)),
-                 sg.Button('Cancel', key = "cancel", font = ("Calibri",10))]
+                [sg.Text('Welcome to NonoPaint!', font = ("consolas",18,"bold"), pad=((6,0),(20,20)))],
+                [sg.Text('Please enter the parameters:', key = "subhead", font=("consolas",12)),
+                 sg.Text('Dimensions:', key = "dims", font = ("consolas", 12), visible = False),
+                 sg.Text('Width', key = "wlabel", font = ("consolas",12)), 
+                 sg.InputText(default_text = "20", key = "width", size = (5,1), font = ("consolas",12)),
+                 sg.Text('Height', key = "hlabel", font = ("consolas",12)), 
+                 sg.InputText(default_text = "20", key = "height", size = (5,1), font = ("consolas",12))],
+                [sg.Text('Blocksize (in pixel):', font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
+                 sg.Slider(range=(15,30), default_value=20, orientation='h', key="slider"),
+                 sg.Radio('Hackerview',group_id=1,default=True,key="HackerTheme",font=("consolas",12),pad=((25,0),(20,0)),enable_events=True)],
+                [sg.Text('Max Thinking Time:', font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
+                 sg.Slider(range=(1,10), default_value=2, orientation='h', key="slidertime"),
+                 sg.Radio('Printview',group_id=1,default=False,key="PrintTheme",font=("consolas",12),pad=((25,0),(20,0)),enable_events=True)],
+                [sg.Button('Ok', key = "ok", font = ("consolas",10)), 
+                 sg.Button('Recenter', key = "recenter", font = ("consolas",10)),
+                 sg.Button('Cancel', key = "cancel", font = ("consolas",10))]
               ]
     # First Window (Input window)
-    window = sg.Window(f'Nono-Maker Input Version {VERSION}', layout1, finalize=True, font=("Calibri",12))  # would like to use use_custom_titlebar=True,titlebar_font=(), but can't figure out how to leave the icons alone
+    window = sg.Window(f'Nono-Maker Input Version {VERSION}', layout1, finalize=True, font=("consolas",10),use_custom_titlebar=True,titlebar_font="consolas")  # would like to use use_custom_titlebar=True,titlebar_font=(), but can't figure out how to leave the icons alone
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
         if event == sg.WIN_CLOSED or event == "cancel":                                                     # if user closes window or clicks cancel
             sys.exit()                                                                                      # exit the entire process (break would just exit the loop itself)
-        if event == "recenter":                                                                             # if window is dragged off center, it can be recentered on the screen
+        elif event == "recenter":                                                                             # if window is dragged off center, it can be recentered on the screen
             window.move_to_center()
-        if event == "ok":                                                                                   # pressing the OK button tests if there is a value in the fields
+        elif event == "ok":                                                                                   # pressing the OK button tests if there is a value in the fields
             width = values["width"]
             height = values["height"]
             if len(width) == 0:
-                sg.PopupError("Please enter a width value!", font=("Calibri",10))
+                sg.PopupError("Please enter a width value!", font=("consolas",8))
                 continue
             if len(height) == 0:
-                sg.PopupError("Please enter a height value!", font=("Calibri",10))
+                sg.PopupError("Please enter a height value!", font=("consolas",8))
                 continue
             # "try" if the value is a usable integer and spits out an error popup if it isn't
             try:
                 width = int(width)
             except:
-                sg.PopupError("Please enter a (whole) numerical value for width!", font=("Calibri",10))
+                sg.PopupError("Please enter a (whole) numerical value for width!", font=("consolas",8))
                 continue
             try:
                 height = int(height)
             except:
-                sg.PopupError("Please enter a (whole) numerical value for height!", font=("Calibri",10))
+                sg.PopupError("Please enter a (whole) numerical value for height!", font=("consolas",8))
                 continue
             # <0?
             if (width <= 0) or (height <= 0):
-                sg.PopupError("Please only enter positive values!", font=("Calibri",10))
+                sg.PopupError("Please only enter positive values!", font=("consolas",8))
                 continue
             # OK - If all values are usable, break to the next loop (close this window and open the next one)
             blocksize = values["slider"]                                                                    # "save" values from slider into variable
             max_waittime = values["slidertime"]
             break
+        elif event == "HackerTheme":
+            sg.theme("hackerview")
+        elif event == "PrintTheme":
+            sg.theme("SystemDefaultForReal")
     window.close()
     
     # Canvas Window --> I want to add the rest of the elements as well (canvas top and left)
@@ -482,7 +507,11 @@ while True:
     c = window_main["canvas"]
     n = 0
     c.draw_rectangle(top_left=(-1,-1),bottom_right=(width+1,height+1),fill_color="#666666",line_width=0)
-    c.draw_rectangle(top_left=(-0.7,-0.7),bottom_right=(width+0.7,height+0.7),fill_color=None,line_color="#F2F2F2",line_width=13) # field is asymmetrical for some reason, this is a workaround
+    if sg.theme() == 'hackerview':
+        fix_line = "#000000"
+    else:
+        fix_line = "#F2F2F2"
+    c.draw_rectangle(top_left=(-0.7,-0.7),bottom_right=(width+0.7,height+0.7),fill_color=None,line_color=fix_line,line_width=13) # field is asymmetrical for some reason, this is a workaround
     for y in range(0,height):
         for x in range(0,width):
             if n%2 == 0:                                                                                    # if rest of division by 2 = 0 (even number)
@@ -585,9 +614,10 @@ while True:
             make_screenshot()
         elif event == "explain":
             if buttons_OK:
-                sg.PopupOK(image="Icons.png",keep_on_top=True,grab_anywhere=True,font=("Calibri",10),no_titlebar=True)
+                sg.theme('SystemDefaultForReal')
+                sg.PopupOK(image="Icons.png",keep_on_top=True,grab_anywhere=True,font=("consolas",8),no_titlebar=True)
             else:
-                sg.PopupOK("I = Invert\nR = Recenter\nC = Clear\nE = Export (Clues with Blank Canvas)\nS = Export (Clues with Solution)\nG = Generate Clues\nN = Restart\nX = Exit",keep_on_top=True,grab_anywhere=True,font=("Calibri",10),no_titlebar=True)
+                sg.PopupOK("I = Invert\nR = Recenter\nC = Clear\nE = Export (Clues with Blank Canvas)\nS = Export (Clues with Solution)\nG = Generate Clues\nN = Restart\nX = Exit",keep_on_top=True,grab_anywhere=True,font=("consolas",8),no_titlebar=True)
         elif event.startswith("Shift"):
             if shift is True:
                 shift = False
