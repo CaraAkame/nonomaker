@@ -15,7 +15,7 @@ Samples:
 
 First Window: 
 
-![Screenshot](ScreenshotWin1-2.png)
+![Screenshot](ScreenshotWin1-3.png)
 
 Main Window + Buttons ("Hackerview","Printview"): 
 
