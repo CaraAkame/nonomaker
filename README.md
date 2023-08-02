@@ -5,11 +5,11 @@ GUI to make a nonogram
 
 https://en.wikipedia.org/wiki/Nonogram
 
-can: pick canvas size, blocksize, max waiting time for solving, theme ("hackerview" and "printview"); draw a nonogram, check if it's solvable, and export as either the solution or the blank version (so the clues with a blank canvas)
+can: pick canvas size, blocksize, max waiting time for solving, cluefield size, theme ("hackerview" and "printview"); draw a nonogram, check if it's solvable, and export as either the solution or the blank version (so the clues with a blank canvas)
 
 All necessary functions are in the main file, no need to download the rest. I do suggest downloading the "Icon___.png" files because the alt version is less pretty. The "NonoClueGenerator" DOES still work as a standalone (using .txt files for instance), but requires some cleanup - it prints the clues with the nonogram itself in the terminal.
 
-To Do: larger clue field (maybe)
+To Do: A color and web version, maybe.
 
 Samples:
 
