@@ -1,5 +1,5 @@
 # nonomaker
-uses Python and pysimplegui (and some other things specifically for the imported solver) 
+uses Python and pysimplegui (and some other things specifically for the imported solver) - solver from https://gist.github.com/henniedeharder/d7af7462be3eed96e4a997498d6f9722#file-nonogramsolver-py 
 
 GUI to make a nonogram
 
