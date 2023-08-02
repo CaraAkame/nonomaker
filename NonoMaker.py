@@ -63,13 +63,13 @@ def create_window_main():
         true_pad = ((0,4),(0,0))
     layout2 = [
                 [sg.Push(),
-                 sg.Frame("",framelayout,size =(cluefield_size*blocksize,cluefield_size*blocksize),border_width=0,pad=true_pad),
-                 sg.Graph(canvas_size=((width+2)*blocksize, cluefield_size*blocksize), 
+                 sg.Frame("",framelayout,size =((cluefield_size+2)*blocksize,cluefield_size*blocksize),border_width=0,pad=true_pad),
+                 sg.Graph(canvas_size=((width+2)*blocksize, (cluefield_size+1)*blocksize), 
                         graph_bottom_left=(-0.5,cluefield_size), graph_top_right=(width+0.5,-0.5), 
                         key = "canvas_top"),
                  sg.Push()],
                 [sg.Push(),
-                 sg.Graph(canvas_size=(cluefield_size*blocksize,(height+2)*blocksize),
+                 sg.Graph(canvas_size=((cluefield_size+2)*blocksize,(height+2)*blocksize),
                           graph_bottom_left=(0,height+0.5), graph_top_right=(cluefield_size,-0.5),
                           key = "canvas_left", pad =((0,0),(0,0))),
                  sg.Graph(canvas_size=((width+2)*blocksize, (height+2)*blocksize), 
@@ -138,9 +138,10 @@ def draw_clue_field():
     for y in range(len(c_x)):
         c_l.draw_rectangle(
         top_left=(0,y),
-        bottom_right=(cluefield_size,y+1),
+        bottom_right=(cluefield_size+2,y+1),
         fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc")
     c_l.draw_line((0,0),(0,y+1),width=5)                                                                    # field is cut off on the left for some reason, this is a "fix"
+    c_l.draw_line((cluefield_size+0.05,0),(cluefield_size+0.05,y+1),width=1)                                # also cut off on the right now, this is a fix
     c_t=window_main["canvas_top"]
     c_t.erase()
     for x in range(len(c_y)):
@@ -250,9 +251,10 @@ def gen_clues_fun():
     for y in range(len(c_x)):
         c_l.draw_rectangle(
             top_left=(0,y),
-            bottom_right=(cluefield_size,y+1),
+            bottom_right=(cluefield_size+2,y+1),
             fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc")
     c_l.draw_line((0,0),(0,y+1),width=5)
+    c_l.draw_line((cluefield_size+0.05,0),(cluefield_size+0.05,y+1),width=1)                        
     for y,clue in enumerate(c_x):
         text = f"{clue}"
         text = text.replace(",","  ")
@@ -447,12 +449,13 @@ while True:
                  sg.InputText(default_text = "20", key = "height", size = (5,1), font = ("consolas",12))],
                 [sg.Text('Blocksize (in pixel):', font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
                  sg.Slider(range=(15,30), default_value=20, orientation='h', key="slider"),
-                 sg.Radio('Hackerview',group_id=1,default=True,key="HackerTheme",font=("consolas",12),pad=((25,0),(20,0)),enable_events=True)],
+                 sg.Text('Theme:',key="theme",font=("consolas",12),pad=((60,0),(20,0)))],
                 [sg.Text('Max Thinking Time:', font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
                  sg.Slider(range=(1,10), default_value=2, orientation='h', key="slidertime"),
                  sg.Radio('Printview',group_id=1,default=False,key="PrintTheme",font=("consolas",12),pad=((25,0),(20,0)),enable_events=True)],
                 [sg.Text('Cluefield Size:',font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
-                 sg.Slider(range=(5,15), default_value=8, orientation='h', key="sliderclues")],
+                 sg.Slider(range=(5,15), default_value=8, orientation='h', key="sliderclues"),
+                 sg.Radio('Hackerview',group_id=1,default=True,key="HackerTheme",font=("consolas",12),pad=((25,0),(20,0)),enable_events=True)],
                 [sg.Text()],
                 [sg.Button('Ok', key = "ok", font = ("consolas",10)), 
                  sg.Button('Recenter', key = "recenter", font = ("consolas",10)),
