@@ -23,6 +23,7 @@ VERSION = 5
 BLACK = "1"
 WHITE = "0"
                                                                                                             # variable in all caps = CONSTANT
+
 hackerviewTheme = {'BACKGROUND':'#000000',
                    'TEXT':'#80ff00',
                    'INPUT':'#000000',
@@ -62,14 +63,14 @@ def create_window_main():
         true_pad = ((0,4),(0,0))
     layout2 = [
                 [sg.Push(),
-                 sg.Frame("",framelayout,size =(8*blocksize,8*blocksize),border_width=0,pad=true_pad),
-                 sg.Graph(canvas_size=((width+2)*blocksize, 8*blocksize), 
-                        graph_bottom_left=(-0.5,8), graph_top_right=(width+0.5,-0.5), 
+                 sg.Frame("",framelayout,size =(cluefield_size*blocksize,cluefield_size*blocksize),border_width=0,pad=true_pad),
+                 sg.Graph(canvas_size=((width+2)*blocksize, cluefield_size*blocksize), 
+                        graph_bottom_left=(-0.5,cluefield_size), graph_top_right=(width+0.5,-0.5), 
                         key = "canvas_top"),
                  sg.Push()],
                 [sg.Push(),
-                 sg.Graph(canvas_size=(8*blocksize,(height+2)*blocksize),
-                          graph_bottom_left=(0,height+0.5), graph_top_right=(8,-0.5),
+                 sg.Graph(canvas_size=(cluefield_size*blocksize,(height+2)*blocksize),
+                          graph_bottom_left=(0,height+0.5), graph_top_right=(cluefield_size,-0.5),
                           key = "canvas_left", pad =((0,0),(0,0))),
                  sg.Graph(canvas_size=((width+2)*blocksize, (height+2)*blocksize), 
                         graph_bottom_left=(-0.5,height+0.5), graph_top_right=(width+0.5,-0.5), 
@@ -137,7 +138,7 @@ def draw_clue_field():
     for y in range(len(c_x)):
         c_l.draw_rectangle(
         top_left=(0,y),
-        bottom_right=(8,y+1),
+        bottom_right=(cluefield_size,y+1),
         fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc")
     c_l.draw_line((0,0),(0,y+1),width=5)                                                                    # field is cut off on the left for some reason, this is a "fix"
     c_t=window_main["canvas_top"]
@@ -145,7 +146,7 @@ def draw_clue_field():
     for x in range(len(c_y)):
         c_t.draw_rectangle(
         top_left=(x,0),
-        bottom_right=(x+1,8),
+        bottom_right=(x+1,cluefield_size),
         fill_color = "#bbbbbb" if x%2 == 0 else "#cccccc")
 
 def gen_clues(cleanlines):
@@ -249,9 +250,8 @@ def gen_clues_fun():
     for y in range(len(c_x)):
         c_l.draw_rectangle(
             top_left=(0,y),
-            bottom_right=(8,y+1),
-            fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc"
-        )
+            bottom_right=(cluefield_size,y+1),
+            fill_color = "#bbbbbb" if y%2 == 0 else "#cccccc")
     c_l.draw_line((0,0),(0,y+1),width=5)
     for y,clue in enumerate(c_x):
         text = f"{clue}"
@@ -260,9 +260,9 @@ def gen_clues_fun():
         text = text.replace("]","")
         c_l.draw_text(
             text,
-            (7.8,y+0.5),
+            ((cluefield_size-0.2),y+0.5),
             "#000000",
-            ("consolas",int(blocksize-5)),
+            ("calibri",int(blocksize-5)),
             text_location = sg.TEXT_LOCATION_RIGHT
         )
     c_t=window_main["canvas_top"]
@@ -270,20 +270,21 @@ def gen_clues_fun():
     for x in range(len(c_y)):
         c_t.draw_rectangle(
             top_left=(x,0),
-            bottom_right=(x+1,8),
+            bottom_right=(x+1,cluefield_size),
             fill_color = "#bbbbbb" if x%2 == 0 else "#cccccc"
         )
     for x,clue in enumerate(c_y):
         for y,number in enumerate(clue[::-1]):
             c_t.draw_text(
                 str(number),
-                (x+0.5,8-y),
+                (x+0.5,cluefield_size-y),
                 "#000000",
-                ("consolas",int(blocksize-5)),
+                ("calibri",int(blocksize-5)),
                 text_location = sg.TEXT_LOCATION_BOTTOM
             )
 
 def make_screenshot():
+    sg.theme('hackerview')
     window_main["solvable"].update(visible=False)
     window_main["shift_toggle"].update(visible=False)
     filename = sg.PopupGetText("Filename:", default_text=f"{Game.name}.pdf", font=("consolas",8),keep_on_top=True)
@@ -450,6 +451,9 @@ while True:
                 [sg.Text('Max Thinking Time:', font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
                  sg.Slider(range=(1,10), default_value=2, orientation='h', key="slidertime"),
                  sg.Radio('Printview',group_id=1,default=False,key="PrintTheme",font=("consolas",12),pad=((25,0),(20,0)),enable_events=True)],
+                [sg.Text('Cluefield Size:',font=("consolas",12),pad=((4,0),(20,0)),size=(22,1)),
+                 sg.Slider(range=(5,15), default_value=8, orientation='h', key="sliderclues")],
+                [sg.Text()],
                 [sg.Button('Ok', key = "ok", font = ("consolas",10)), 
                  sg.Button('Recenter', key = "recenter", font = ("consolas",10)),
                  sg.Button('Cancel', key = "cancel", font = ("consolas",10))]
@@ -490,6 +494,7 @@ while True:
             # OK - If all values are usable, break to the next loop (close this window and open the next one)
             blocksize = values["slider"]                                                                    # "save" values from slider into variable
             max_waittime = values["slidertime"]
+            cluefield_size = values["sliderclues"]
             break
         elif event == "HackerTheme":
             sg.theme("hackerview")
